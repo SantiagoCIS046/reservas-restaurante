@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Mesas - Restaurante</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="tables.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header-container">
+        <h1>🍽️ Gestión de Mesas - Restaurante</h1>
+        <div class="header-buttons">
+          <button
+            class="add-table-btn"
+            onclick="mostrarFormularioAgregarMesa()"
+          >
+            ➕ Agregar Mesa
+          </button>
+          <button class="reserve-table-btn" onclick="mostrarSelectorMesas()">
+            📅 Reservar Mesa
+          </button>
+          <button
+            class="view-reservations-btn"
+            onclick="mostrarReservasActivas()"
+          >
+            📋 Ver Reservas
+            <span id="reservations-badge" class="reservations-badge">0</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-number" id="available-count">0</div>
+          <div class="stat-label">Disponibles</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="reserved-count">0</div>
+          <div class="stat-label">Reservadas</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="occupied-count">0</div>
+          <div class="stat-label">Ocupadas</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="disabled-count">0</div>
+          <div class="stat-label">Deshabilitadas</div>
+        </div>
+      </div>
+
+      <h2>Estado de Mesas</h2>
+      <div class="table-grid" id="tables-container"></div>
+    </div>
+
+    <div id="add-table-modal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="cerrarFormularioAgregarMesa()"
+          >&times;</span
+        >
+        <h2>Agregar Nueva Mesa</h2>
+        <form id="add-table-form">
+          <div class="form-group">
+            <label for="table-capacity">Capacidad:</label>
+            <input
+              type="number"
+              id="table-capacity"
+              min="1"
+              max="20"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="table-location">Ubicación:</label>
+            <input
+              type="text"
+              id="table-location"
+              placeholder="Ej: Interior, Terraza, Ventana"
+              required
+            />
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="cerrarFormularioAgregarMesa()">
+              Cancelar
+            </button>
+            <button type="submit">Agregar Mesa</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="reserve-modal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="cerrarFormularioReserva()">&times;</span>
+        <h2>Reservar Mesa</h2>
+        <form id="reserve-form">
+          <div class="form-group">
+            <label for="reserve-name">Nombre:</label>
+            <input type="text" id="reserve-name" required />
+          </div>
+          <div class="form-group">
+            <label for="reserve-day">Día:</label>
+            <input type="date" id="reserve-day" required />
+          </div>
+          <div class="form-group">
+            <label for="reserve-time">Hora:</label>
+            <input type="time" id="reserve-time" required />
+          </div>
+          <div class="form-group">
+            <label for="reserve-location">Lugar:</label>
+            <input
+              type="text"
+              id="reserve-location"
+              placeholder="Ej: Interior, Terraza"
+              required
+            />
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="cerrarFormularioReserva()">
+              Cancelar
+            </button>
+            <button type="submit">Reservar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="reservations-modal" class="modal">
+      <div class="modal-content large-modal">
+        <span class="close" onclick="cerrarModalReservas()">&times;</span>
+        <h2>📋 Reservas Activas</h2>
+        <div id="reservations-list" class="reservations-list">
+          <!-- Las reservas se cargarán aquí dinámicamente -->
+        </div>
+        <div class="modal-actions">
+          <button onclick="cerrarModalReservas()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="select-table-modal" class="modal">
+      <div class="modal-content large-modal">
+        <span class="close" onclick="cerrarSelectorMesas()">&times;</span>
+        <h2>📅 Seleccionar Mesa para Reservar</h2>
+        <div id="available-tables-list" class="available-tables-list">
+          <!-- Las mesas disponibles se cargarán aquí dinámicamente -->
+        </div>
+        <div class="modal-actions">
+          <button onclick="cerrarSelectorMesas()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="tables.js"></script>
+    <script>
+      document.addEventListener("change", function (e) {
+        if (e.target.classList.contains("status-select")) {
+          const mesaId = e.target.dataset.mesaId;
+          const nuevoEstado = e.target.value;
+
+          if (window.sistemaMesas.actualizarEstadoMesa(mesaId, nuevoEstado)) {
+            renderizarMesas();
+          }
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        renderizarMesas();
+
+        // Verificar reservas cada 30 segundos para actualizar estados
+        setInterval(function () {
+          window.sistemaMesas.verificarReservasActivas();
+          window.sistemaMesas.verificarReservasExpiradas();
+          renderizarMesas();
+        }, 30000); // 30 segundos
+      });
+
+      function mostrarFormularioAgregarMesa() {
+        document.getElementById("add-table-modal").style.display = "block";
+        document.getElementById("table-capacity").value = "";
+        document.getElementById("table-location").value = "";
+        document.getElementById("table-capacity").focus();
+      }
+
+      function cerrarFormularioAgregarMesa() {
+        document.getElementById("add-table-modal").style.display = "none";
+      }
+
+      document
+        .getElementById("add-table-form")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const capacidad = parseInt(
+            document.getElementById("table-capacity").value
+          );
+          const ubicacion = document
+            .getElementById("table-location")
+            .value.trim();
+
+          if (capacidad && ubicacion) {
+            const nuevaMesa = window.sistemaMesas.agregarMesa(
+              capacidad,
+              ubicacion
+            );
+            if (nuevaMesa) {
+              alert(`✅ ${nuevaMesa.id.toUpperCase()} agregada exitosamente`);
+              renderizarMesas();
+              cerrarFormularioAgregarMesa();
+            } else {
+              alert("❌ Error al agregar la mesa");
+            }
+          }
+        });
+
+      window.onclick = function (event) {
+        const modal = document.getElementById("add-table-modal");
+        if (event.target === modal) {
+          cerrarFormularioAgregarMesa();
+        }
+      };
+
+      function mostrarFormularioReserva(mesaId) {
+        const mesa = window.sistemaMesas.buscarMesa(mesaId);
+        if (!mesa) {
+          alert("Mesa no encontrada");
+          return;
+        }
+
+        if (mesa.estado !== "disponible") {
+          alert("La mesa no está disponible para reservar");
+          return;
+        }
+
+        document.getElementById("reserve-modal").style.display = "block";
+        document.getElementById("reserve-name").value = "";
+        document.getElementById("reserve-day").value = "";
+        document.getElementById("reserve-time").value = "";
+        document.getElementById("reserve-location").value = mesa.ubicacion;
+        document.getElementById("reserve-name").focus();
+
+        // Store the mesaId for the form submission
+        document.getElementById("reserve-form").dataset.mesaId = mesaId;
+      }
+
+      function cerrarFormularioReserva() {
+        document.getElementById("reserve-modal").style.display = "none";
+      }
+
+      document
+        .getElementById("reserve-form")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const mesaId = this.dataset.mesaId;
+          const nombre = document.getElementById("reserve-name").value.trim();
+          const dia = document.getElementById("reserve-day").value;
+          const hora = document.getElementById("reserve-time").value;
+          const lugar = document
+            .getElementById("reserve-location")
+            .value.trim();
+
+          if (nombre && dia && hora && lugar) {
+            const nuevaReserva = window.sistemaMesas.agregarReserva(
+              mesaId,
+              nombre,
+              dia,
+              hora,
+              lugar
+            );
+            if (nuevaReserva) {
+              alert(
+                `✅ Reserva creada exitosamente para ${mesaId.toUpperCase()}\n\n` +
+                  `📅 Fecha: ${dia} a las ${hora}\n` +
+                  `👤 Cliente: ${nombre}\n` +
+                  `📍 Ubicación: ${lugar}\n\n` +
+                  `⚠️ La mesa se ha reservado inmediatamente y ya no está disponible para otras reservas.`
+              );
+              renderizarMesas();
+              cerrarFormularioReserva();
+            } else {
+              alert("❌ Error al crear la reserva");
+            }
+          }
+        });
+
+      function mostrarReservasActivas() {
+        const reservas = window.sistemaMesas.obtenerReservasActivas();
+        const container = document.getElementById("reservations-list");
+
+        if (reservas.length === 0) {
+          container.innerHTML =
+            "<p>No hay reservas activas en este momento.</p>";
+        } else {
+          container.innerHTML = "";
+
+          reservas.forEach((reserva) => {
+            const mesa = window.sistemaMesas.buscarMesa(reserva.mesaId);
+            const card = document.createElement("div");
+            card.className = "reservation-card";
+
+            const fechaReserva = new Date(`${reserva.dia}T${reserva.hora}`);
+            const ahora = new Date();
+            const estadoTexto =
+              fechaReserva <= ahora ? "Activa (En uso)" : "Pendiente";
+
+            card.innerHTML = `
+              <div class="reservation-header">
+                <h3>Reserva ${reserva.id}</h3>
+                <span class="reservation-status ${estadoTexto
+                  .toLowerCase()
+                  .replace(" ", "-")}">${estadoTexto}</span>
+              </div>
+              <div class="reservation-info">
+                <div class="info-item"><strong>Cliente:</strong> ${
+                  reserva.nombre
+                }</div>
+                <div class="info-item"><strong>Mesa:</strong> ${reserva.mesaId.toUpperCase()}</div>
+                <div class="info-item"><strong>Fecha:</strong> ${
+                  reserva.dia
+                }</div>
+                <div class="info-item"><strong>Hora:</strong> ${
+                  reserva.hora
+                }</div>
+                <div class="info-item"><strong>Lugar:</strong> ${
+                  reserva.lugar
+                }</div>
+                ${
+                  mesa
+                    ? `
+                  <div class="info-item"><strong>Capacidad:</strong> ${mesa.capacidad} personas</div>
+                  <div class="info-item"><strong>Ubicación:</strong> ${mesa.ubicacion}</div>
+                `
+                    : ""
+                }
+              </div>
+              <div class="reservation-actions">
+                <button class="delete-reservation-btn" onclick="eliminarReserva('${
+                  reserva.id
+                }')">
+                  🗑️ Eliminar Reserva
+                </button>
+              </div>
+            `;
+
+            container.appendChild(card);
+          });
+        }
+
+        document.getElementById("reservations-modal").style.display = "block";
+      }
+
+      function cerrarModalReservas() {
+        document.getElementById("reservations-modal").style.display = "none";
+      }
+
+      function mostrarSelectorMesas() {
+        const mesasDisponibles =
+          window.sistemaMesas.obtenerMesasPorEstado("disponible");
+        const container = document.getElementById("available-tables-list");
+
+        if (mesasDisponibles.length === 0) {
+          container.innerHTML =
+            "<p>No hay mesas disponibles para reservar en este momento.</p>";
+        } else {
+          container.innerHTML = "";
+
+          mesasDisponibles.forEach((mesa) => {
+            const card = document.createElement("div");
+            card.className = "available-table-card";
+            card.dataset.mesaId = mesa.id;
+
+            card.innerHTML = `
+              <div class="available-table-header">
+                <div class="available-table-id">${mesa.id.toUpperCase()}</div>
+              </div>
+              <div class="available-table-info">
+                <div class="available-table-info-item"><strong>Capacidad:</strong> ${
+                  mesa.capacidad
+                } personas</div>
+                <div class="available-table-info-item"><strong>Ubicación:</strong> ${
+                  mesa.ubicacion
+                }</div>
+              </div>
+              <button class="select-table-btn" onclick="seleccionarMesa('${
+                mesa.id
+              }')">
+                Seleccionar Mesa
+              </button>
+            `;
+
+            container.appendChild(card);
+          });
+        }
+
+        document.getElementById("select-table-modal").style.display = "block";
+      }
+
+      function cerrarSelectorMesas() {
+        document.getElementById("select-table-modal").style.display = "none";
+      }
+
+      function seleccionarMesa(mesaId) {
+        const mesa = window.sistemaMesas.buscarMesa(mesaId);
+        if (!mesa) {
+          alert("Mesa no encontrada");
+          return;
+        }
+
+        // Cerrar el modal de selección
+        cerrarSelectorMesas();
+
+        // Mostrar el formulario de reserva con la mesa seleccionada
+        document.getElementById("reserve-modal").style.display = "block";
+        document.getElementById("reserve-name").value = "";
+        document.getElementById("reserve-day").value = "";
+        document.getElementById("reserve-time").value = "";
+        document.getElementById("reserve-location").value = mesa.ubicacion;
+        document.getElementById("reserve-name").focus();
+
+        // Store the mesaId for the form submission
+        document.getElementById("reserve-form").dataset.mesaId = mesaId;
+      }
+
+      window.onclick = function (event) {
+        const addModal = document.getElementById("add-table-modal");
+        const reserveModal = document.getElementById("reserve-modal");
+        const reservationsModal = document.getElementById("reservations-modal");
+        const selectTableModal = document.getElementById("select-table-modal");
+        if (event.target === addModal) {
+          cerrarFormularioAgregarMesa();
+        }
+        if (event.target === reserveModal) {
+          cerrarFormularioReserva();
+        }
+        if (event.target === reservationsModal) {
+          cerrarModalReservas();
+        }
+        if (event.target === selectTableModal) {
+          cerrarSelectorMesas();
+        }
+      };
+    </script>
+  </body>
+</html>
