@@ -132,26 +132,28 @@ document.addEventListener("DOMContentLoaded", function () {
 function eliminarMesaConConfirmacion(idMesa) {
   const mesa = buscarMesa(idMesa);
   if (!mesa) {
-    alert("Mesa no encontrada");
+    mostrarAlerta("Mesa no encontrada", "danger");
     return;
   }
 
-  const confirmacion = confirm(
+  mostrarConfirmacion(
     `¿Está seguro de que desea eliminar la ${mesa.id.toUpperCase()}?\n\n` +
       `Capacidad: ${mesa.capacidad} personas\n` +
       `Ubicación: ${mesa.ubicacion}\n` +
       `Estado: ${mesa.estado}\n\n` +
-      `Esta acción no se puede deshacer.`
-  );
-
-  if (confirmacion) {
-    if (window.sistemaMesas.eliminarMesa(idMesa)) {
-      alert(`✅ ${mesa.id.toUpperCase()} ha sido eliminada exitosamente`);
-      renderizarMesas();
-    } else {
-      alert("❌ Error al eliminar la mesa");
+      `Esta acción no se puede deshacer.`,
+    () => {
+      if (window.sistemaMesas.eliminarMesa(idMesa)) {
+        mostrarAlerta(
+          `✅ ${mesa.id.toUpperCase()} ha sido eliminada exitosamente`,
+          "success"
+        );
+        renderizarMesas();
+      } else {
+        mostrarAlerta("❌ Error al eliminar la mesa", "danger");
+      }
     }
-  }
+  );
 }
 
 function renderizarMesas() {
@@ -232,14 +234,33 @@ function guardarReservas(reservas) {
   localStorage.setItem("reservasRestaurante", JSON.stringify(reservas));
 }
 
-function agregarReserva(idMesa, nombre, dia, hora, lugar) {
+function agregarReserva(idMesa, nombre, dia, hora, lugar, ocasion = "Otro") {
   // Validar que la fecha no sea anterior al día actual
   const fechaReserva = new Date(`${dia}T${hora}`);
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0); // Resetear hora para comparar solo fechas
 
   if (fechaReserva < hoy) {
-    alert("❌ No se puede reservar para fechas anteriores al día actual.");
+    mostrarAlerta(
+      "❌ No se puede reservar para fechas anteriores al día actual.",
+      "danger"
+    );
+    return false;
+  }
+
+  // Validar que la hora esté dentro del horario de atención (8:00am - 8:00pm)
+  const horaSeleccionada = parseInt(hora.split(":")[0]);
+  const minutoSeleccionado = parseInt(hora.split(":")[1]);
+
+  if (
+    horaSeleccionada < 8 ||
+    (horaSeleccionada === 20 && minutoSeleccionado > 0) ||
+    horaSeleccionada > 20
+  ) {
+    mostrarAlerta(
+      "❌ El horario de reservas es de 8:00am a 8:00pm. Por favor selecciona una hora dentro de este rango.",
+      "danger"
+    );
     return false;
   }
 
@@ -251,6 +272,7 @@ function agregarReserva(idMesa, nombre, dia, hora, lugar) {
     dia: dia,
     hora: hora,
     lugar: lugar,
+    ocasion: ocasion,
     estado: "activa",
     fechaCreacion: new Date().toISOString(),
   };
@@ -302,37 +324,39 @@ function obtenerReservasActivas() {
 function eliminarReserva(idReserva) {
   const reserva = obtenerReservas().find((r) => r.id === idReserva);
   if (!reserva) {
-    alert("Reserva no encontrada");
+    mostrarAlerta("Reserva no encontrada", "danger");
     return;
   }
 
-  const confirmacion = confirm(
+  mostrarConfirmacion(
     `¿Está seguro de que desea eliminar la reserva ${idReserva}?\n\n` +
       `Cliente: ${reserva.nombre}\n` +
       `Mesa: ${reserva.mesaId.toUpperCase()}\n` +
       `Fecha: ${reserva.dia} a las ${reserva.hora}\n\n` +
-      `Esta acción no se puede deshacer.`
-  );
+      `Esta acción no se puede deshacer.`,
+    () => {
+      const reservas = obtenerReservas();
+      const reservasFiltradas = reservas.filter((r) => r.id !== idReserva);
 
-  if (confirmacion) {
-    const reservas = obtenerReservas();
-    const reservasFiltradas = reservas.filter((r) => r.id !== idReserva);
+      if (reservasFiltradas.length < reservas.length) {
+        guardarReservas(reservasFiltradas);
 
-    if (reservasFiltradas.length < reservas.length) {
-      guardarReservas(reservasFiltradas);
+        // Liberar la mesa si estaba reservada
+        actualizarEstadoMesa(reserva.mesaId, "disponible");
 
-      // Liberar la mesa si estaba reservada
-      actualizarEstadoMesa(reserva.mesaId, "disponible");
+        // Actualizar el badge de reservas
+        actualizarBadgeReservas();
 
-      // Actualizar el badge de reservas
-      actualizarBadgeReservas();
-
-      alert(`✅ Reserva ${idReserva} eliminada exitosamente`);
-      mostrarReservasActivas(); // Refrescar la lista
-    } else {
-      alert("❌ Error al eliminar la reserva");
+        mostrarAlerta(
+          `✅ Reserva ${idReserva} eliminada exitosamente`,
+          "success"
+        );
+        mostrarReservasActivas(); // Refrescar la lista
+      } else {
+        mostrarAlerta("❌ Error al eliminar la reserva", "danger");
+      }
     }
-  }
+  );
 }
 
 // Función para verificar y actualizar estados de mesas según reservas activas

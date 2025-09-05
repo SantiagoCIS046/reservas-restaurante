@@ -4,10 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestión de Mesas - Restaurante</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
     <script src="tables.js"></script>
   </head>
   <body>
+    <div
+      id="alert-container"
+      class="position-fixed top-0 end-0 p-3"
+      style="z-index: 1050"
+    ></div>
+
     <div class="container">
       <div class="header-container">
         <h1>🍽️ Gestión de Mesas - Restaurante</h1>
@@ -116,6 +126,30 @@
               required
             />
           </div>
+          <div class="form-group">
+            <label for="reserve-occasion">Tipo de Reserva:</label>
+            <select
+              id="reserve-occasion"
+              required
+              onchange="toggleOtherOccasionInput()"
+            >
+              <option value="">Seleccionar ocasión...</option>
+              <option value="Cumpleaños">🎂 Cumpleaños</option>
+              <option value="Aniversario">💍 Aniversario</option>
+              <option value="Graduación">🎓 Graduación</option>
+              <option value="Reunión Familiar">👨‍👩‍👧‍👦 Reunión Familiar</option>
+              <option value="Cena de Negocios">💼 Cena de Negocios</option>
+              <option value="Compromiso">💑 Compromiso</option>
+              <option value="Amigos">👥 Amigos</option>
+              <option value="Otro">🎉 Otro</option>
+            </select>
+            <input
+              type="text"
+              id="reserve-other-occasion"
+              placeholder="Escribe el motivo"
+              style="display: none; margin-top: 8px"
+            />
+          </div>
           <div class="form-actions">
             <button type="button" onclick="cerrarFormularioReserva()">
               Cancelar
@@ -152,8 +186,49 @@
       </div>
     </div>
 
+    <div id="confirm-modal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="cerrarModalConfirmacion()">&times;</span>
+        <h2>⚠️ Confirmar Acción</h2>
+        <div id="confirm-message" class="confirm-message">
+          <!-- El mensaje de confirmación se cargará aquí dinámicamente -->
+        </div>
+        <div class="modal-actions">
+          <button id="confirm-cancel-btn" onclick="cerrarModalConfirmacion()">
+            Cancelar
+          </button>
+          <button id="confirm-ok-btn" class="confirm-btn">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="tables.js"></script>
     <script>
+      // Función para mostrar alertas de Bootstrap
+      function mostrarAlerta(mensaje, tipo = "success", duracion = 5000) {
+        const alertContainer = document.getElementById("alert-container");
+
+        // Crear el elemento de alerta
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${tipo} alert-dismissible fade show`;
+        alertDiv.setAttribute("role", "alert");
+        alertDiv.innerHTML = `
+          ${mensaje}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        // Agregar al contenedor
+        alertContainer.appendChild(alertDiv);
+
+        // Auto-remover después de la duración especificada
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.remove();
+          }
+        }, duracion);
+      }
+
       document.addEventListener("change", function (e) {
         if (e.target.classList.contains("status-select")) {
           const mesaId = e.target.dataset.mesaId;
@@ -205,11 +280,14 @@
               ubicacion
             );
             if (nuevaMesa) {
-              alert(`✅ ${nuevaMesa.id.toUpperCase()} agregada exitosamente`);
+              mostrarAlerta(
+                `✅ ${nuevaMesa.id.toUpperCase()} agregada exitosamente`,
+                "success"
+              );
               renderizarMesas();
               cerrarFormularioAgregarMesa();
             } else {
-              alert("❌ Error al agregar la mesa");
+              mostrarAlerta("❌ Error al agregar la mesa", "danger");
             }
           }
         });
@@ -221,15 +299,28 @@
         }
       };
 
+      function toggleOtherOccasionInput() {
+        const select = document.getElementById("reserve-occasion");
+        const input = document.getElementById("reserve-other-occasion");
+        if (select.value === "Otro") {
+          input.style.display = "block";
+          input.required = true;
+        } else {
+          input.style.display = "none";
+          input.required = false;
+          input.value = "";
+        }
+      }
+
       function mostrarFormularioReserva(mesaId) {
         const mesa = window.sistemaMesas.buscarMesa(mesaId);
         if (!mesa) {
-          alert("Mesa no encontrada");
+          mostrarAlerta("Mesa no encontrada", "danger");
           return;
         }
 
         if (mesa.estado !== "disponible") {
-          alert("La mesa no está disponible para reservar");
+          mostrarAlerta("La mesa no está disponible para reservar", "warning");
           return;
         }
 
@@ -238,6 +329,10 @@
         document.getElementById("reserve-day").value = "";
         document.getElementById("reserve-time").value = "";
         document.getElementById("reserve-location").value = mesa.ubicacion;
+        document.getElementById("reserve-occasion").value = "";
+        document.getElementById("reserve-other-occasion").value = "";
+        document.getElementById("reserve-other-occasion").style.display =
+          "none";
         document.getElementById("reserve-name").focus();
 
         // Store the mesaId for the form submission
@@ -260,27 +355,48 @@
           const lugar = document
             .getElementById("reserve-location")
             .value.trim();
+          const ocasion = document.getElementById("reserve-occasion").value;
 
-          if (nombre && dia && hora && lugar) {
+          let finalOcasion = ocasion;
+          if (ocasion === "Otro") {
+            const customOcasion = document
+              .getElementById("reserve-other-occasion")
+              .value.trim();
+            if (customOcasion) {
+              finalOcasion = customOcasion;
+            } else {
+              mostrarAlerta(
+                "Por favor especifique el motivo para 'Otro'",
+                "warning"
+              );
+              return;
+            }
+          }
+
+          if (nombre && dia && hora && lugar && finalOcasion) {
             const nuevaReserva = window.sistemaMesas.agregarReserva(
               mesaId,
               nombre,
               dia,
               hora,
-              lugar
+              lugar,
+              finalOcasion
             );
             if (nuevaReserva) {
-              alert(
+              mostrarAlerta(
                 `✅ Reserva creada exitosamente para ${mesaId.toUpperCase()}\n\n` +
                   `📅 Fecha: ${dia} a las ${hora}\n` +
                   `👤 Cliente: ${nombre}\n` +
-                  `📍 Ubicación: ${lugar}\n\n` +
-                  `⚠️ La mesa se ha reservado inmediatamente y ya no está disponible para otras reservas.`
+                  `📍 Ubicación: ${lugar}\n` +
+                  `🎉 Ocasion: ${finalOcasion}\n\n` +
+                  `⚠️ La mesa se ha reservado inmediatamente y ya no está disponible para otras reservas.`,
+                "success",
+                10000
               );
               renderizarMesas();
               cerrarFormularioReserva();
             } else {
-              alert("❌ Error al crear la reserva");
+              mostrarAlerta("❌ Error al crear la reserva", "danger");
             }
           }
         });
@@ -325,6 +441,9 @@
                 }</div>
                 <div class="info-item"><strong>Lugar:</strong> ${
                   reserva.lugar
+                }</div>
+                <div class="info-item"><strong>Ocasion:</strong> ${
+                  reserva.ocasion
                 }</div>
                 ${
                   mesa
@@ -404,7 +523,7 @@
       function seleccionarMesa(mesaId) {
         const mesa = window.sistemaMesas.buscarMesa(mesaId);
         if (!mesa) {
-          alert("Mesa no encontrada");
+          mostrarAlerta("Mesa no encontrada", "danger");
           return;
         }
 
@@ -417,10 +536,45 @@
         document.getElementById("reserve-day").value = "";
         document.getElementById("reserve-time").value = "";
         document.getElementById("reserve-location").value = mesa.ubicacion;
+        document.getElementById("reserve-occasion").value = "";
+        document.getElementById("reserve-other-occasion").value = "";
+        document.getElementById("reserve-other-occasion").style.display =
+          "none";
         document.getElementById("reserve-name").focus();
 
         // Store the mesaId for the form submission
         document.getElementById("reserve-form").dataset.mesaId = mesaId;
+      }
+
+      // Función para mostrar modal de confirmación
+      function mostrarConfirmacion(mensaje, callbackConfirmar) {
+        const messageElement = document.getElementById("confirm-message");
+        const confirmBtn = document.getElementById("confirm-ok-btn");
+        const cancelBtn = document.getElementById("confirm-cancel-btn");
+
+        // Limpiar eventos anteriores
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        // Establecer mensaje
+        messageElement.innerHTML = mensaje.replace(/\n/g, "<br>");
+
+        // Configurar eventos
+        newConfirmBtn.onclick = function () {
+          cerrarModalConfirmacion();
+          if (callbackConfirmar) callbackConfirmar();
+        };
+
+        newCancelBtn.onclick = cerrarModalConfirmacion;
+
+        // Mostrar modal
+        document.getElementById("confirm-modal").style.display = "block";
+      }
+
+      function cerrarModalConfirmacion() {
+        document.getElementById("confirm-modal").style.display = "none";
       }
 
       window.onclick = function (event) {
@@ -428,6 +582,7 @@
         const reserveModal = document.getElementById("reserve-modal");
         const reservationsModal = document.getElementById("reservations-modal");
         const selectTableModal = document.getElementById("select-table-modal");
+        const confirmModal = document.getElementById("confirm-modal");
         if (event.target === addModal) {
           cerrarFormularioAgregarMesa();
         }
@@ -439,6 +594,9 @@
         }
         if (event.target === selectTableModal) {
           cerrarSelectorMesas();
+        }
+        if (event.target === confirmModal) {
+          cerrarModalConfirmacion();
         }
       };
     </script>
