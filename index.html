@@ -14,8 +14,7 @@
   <body>
     <div
       id="alert-container"
-      class="position-fixed top-0 end-0 p-3"
-      style="z-index: 1050"
+      class="position-fixed top-0 end-0 p-3 alert-zindex"
     ></div>
 
     <div class="container">
@@ -83,11 +82,31 @@
           </div>
           <div class="form-group">
             <label for="table-location">Ubicación:</label>
+            <select
+              id="table-location"
+              required
+              onchange="toggleOtherLocationInput()"
+            >
+              <option value="">Seleccionar ubicación...</option>
+              <option value="Ventana1">Ventana1</option>
+              <option value="Ventana2">Ventana2</option>
+              <option value="Ventana3">Ventana3</option>
+              <option value="Ventana4">Ventana4</option>
+              <option value="Terraza1">Terraza1</option>
+              <option value="Terraza2">Terraza2</option>
+              <option value="Terraza3">Terraza3</option>
+              <option value="Terraza4">Terraza4</option>
+              <option value="VIP1">VIP1</option>
+              <option value="VIP2">VIP2</option>
+              <option value="VIP3">VIP3</option>
+              <option value="VIP4">VIP4</option>
+              <option value="Otro">Otro</option>
+            </select>
             <input
               type="text"
-              id="table-location"
-              placeholder="Ej: Interior, Terraza, Ventana"
-              required
+              id="table-other-location"
+              placeholder="Especificar ubicación personalizada"
+              class="table-other-location"
             />
           </div>
           <div class="form-actions">
@@ -147,7 +166,7 @@
               type="text"
               id="reserve-other-occasion"
               placeholder="Escribe el motivo"
-              style="display: none; margin-top: 8px"
+              class="reserve-other-occasion"
             />
           </div>
           <div class="form-actions">
@@ -255,6 +274,8 @@
         document.getElementById("add-table-modal").style.display = "block";
         document.getElementById("table-capacity").value = "";
         document.getElementById("table-location").value = "";
+        document.getElementById("table-other-location").value = "";
+        document.getElementById("table-other-location").style.display = "none";
         document.getElementById("table-capacity").focus();
       }
 
@@ -270,9 +291,25 @@
           const capacidad = parseInt(
             document.getElementById("table-capacity").value
           );
-          const ubicacion = document
+          const ubicacionSeleccionada = document
             .getElementById("table-location")
             .value.trim();
+
+          let ubicacion = ubicacionSeleccionada;
+          if (ubicacionSeleccionada === "Otro") {
+            const customUbicacion = document
+              .getElementById("table-other-location")
+              .value.trim();
+            if (customUbicacion) {
+              ubicacion = customUbicacion;
+            } else {
+              mostrarAlerta(
+                "Por favor especifique la ubicación personalizada",
+                "warning"
+              );
+              return;
+            }
+          }
 
           if (capacidad && ubicacion) {
             const nuevaMesa = window.sistemaMesas.agregarMesa(
@@ -302,6 +339,19 @@
       function toggleOtherOccasionInput() {
         const select = document.getElementById("reserve-occasion");
         const input = document.getElementById("reserve-other-occasion");
+        if (select.value === "Otro") {
+          input.style.display = "block";
+          input.required = true;
+        } else {
+          input.style.display = "none";
+          input.required = false;
+          input.value = "";
+        }
+      }
+
+      function toggleOtherLocationInput() {
+        const select = document.getElementById("table-location");
+        const input = document.getElementById("table-other-location");
         if (select.value === "Otro") {
           input.style.display = "block";
           input.required = true;
