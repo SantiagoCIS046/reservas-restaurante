@@ -264,6 +264,18 @@ function agregarReserva(idMesa, nombre, dia, hora, lugar, ocasion = "Otro") {
     return false;
   }
 
+  // Validar que la reserva no sea más de 2 horas en el futuro
+  const ahora = new Date();
+  const maxFechaReserva = new Date(ahora.getTime() + 2 * 60 * 60 * 1000);
+
+  if (fechaReserva > maxFechaReserva) {
+    mostrarAlerta(
+      "❌ No se puede reservar con más de 2 horas de anticipación. Por favor selecciona una fecha y hora dentro de las próximas 2 horas.",
+      "danger"
+    );
+    return false;
+  }
+
   const reservas = obtenerReservas();
   const nuevaReserva = {
     id: `reserva${reservas.length + 1}`,
