@@ -264,18 +264,6 @@ function agregarReserva(idMesa, nombre, dia, hora, lugar, ocasion = "Otro") {
     return false;
   }
 
-  // Validar que la reserva no sea más de 2 horas en el futuro
-  const ahora = new Date();
-  const maxFechaReserva = new Date(ahora.getTime() + 2 * 60 * 60 * 1000);
-
-  if (fechaReserva > maxFechaReserva) {
-    mostrarAlerta(
-      "❌ No se puede reservar con más de 2 horas de anticipación. Por favor selecciona una fecha y hora dentro de las próximas 2 horas.",
-      "danger"
-    );
-    return false;
-  }
-
   // Verificar si ya existe una reserva activa para la misma mesa, día y hora
   const reservas = obtenerReservas();
   const conflicto = reservas.find(
@@ -308,6 +296,9 @@ function agregarReserva(idMesa, nombre, dia, hora, lugar, ocasion = "Otro") {
 
   reservas.push(nuevaReserva);
   guardarReservas(reservas);
+
+  // Cambiar el estado de la mesa a reservada inmediatamente
+  actualizarEstadoMesa(idMesa, "reservada");
 
   // Actualizar el badge de reservas
   actualizarBadgeReservas();
@@ -345,6 +336,47 @@ function buscarReservaPorMesa(idMesa) {
 function obtenerReservasActivas() {
   const reservas = obtenerReservas();
   return reservas.filter((reserva) => reserva.estado === "activa");
+}
+
+function pagarReserva(idReserva) {
+  const reserva = obtenerReservas().find((r) => r.id === idReserva);
+  if (!reserva) {
+    mostrarAlerta("Reserva no encontrada", "danger");
+    return;
+  }
+
+  mostrarConfirmacion(
+    `¿Está seguro de que desea pagar y eliminar la reserva ${idReserva}?\n\n` +
+      `Cliente: ${reserva.nombre}\n` +
+      `Mesa: ${reserva.mesaId.toUpperCase()}\n` +
+      `Fecha: ${reserva.dia} a las ${reserva.hora}\n\n` +
+      `Esta acción marcará la reserva como pagada y liberará la mesa.`,
+    () => {
+      // Marcar como pagada
+      if (marcarComoPagada(idReserva)) {
+        // Eliminar la reserva del almacenamiento
+        const reservas = obtenerReservas();
+        const reservasFiltradas = reservas.filter((r) => r.id !== idReserva);
+
+        if (reservasFiltradas.length < reservas.length) {
+          guardarReservas(reservasFiltradas);
+
+          // Actualizar el badge de reservas
+          actualizarBadgeReservas();
+
+          mostrarAlerta(
+            `✅ Reserva ${idReserva} pagada y eliminada exitosamente`,
+            "success"
+          );
+          mostrarReservasActivas(); // Refrescar la lista
+        } else {
+          mostrarAlerta("❌ Error al eliminar la reserva", "danger");
+        }
+      } else {
+        mostrarAlerta("❌ Error al marcar la reserva como pagada", "danger");
+      }
+    }
+  );
 }
 
 function eliminarReserva(idReserva) {
