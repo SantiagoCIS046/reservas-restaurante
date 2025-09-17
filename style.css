@@ -652,3 +652,28 @@ h1 {
   background-color: #bd2130;
   transform: translateY(0);
 }
+
+/* Estilos para el botón de pagar reserva */
+.pay-reservation-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pay-reservation-btn:hover {
+  background-color: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.pay-reservation-btn:active {
+  background-color: #1e7e34;
+  transform: translateY(0);
+}
