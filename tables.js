@@ -290,6 +290,7 @@ function agregarReserva(idMesa, nombre, dia, hora, lugar, ocasion = "Otro") {
     hora: hora,
     lugar: lugar,
     ocasion: ocasion,
+    duracion: duracionesPorOcasion[ocasion] || 2,
     estado: "activa",
     fechaCreacion: new Date().toISOString(),
   };
@@ -437,6 +438,18 @@ function verificarReservasActivas() {
   guardarReservas(reservas);
 }
 
+// Duraciones de reserva por ocasión (en horas)
+const duracionesPorOcasion = {
+  Cumpleaños: 2,
+  Aniversario: 3,
+  Graduación: 4,
+  "Reunión Familiar": 3,
+  "Cena de Negocios": 2,
+  Compromiso: 6,
+  Amigos: 2,
+  Otro: 2,
+};
+
 // Función para verificar reservas expiradas (para liberar mesas)
 function verificarReservasExpiradas() {
   const reservas = obtenerReservas();
@@ -445,12 +458,12 @@ function verificarReservasExpiradas() {
   reservas.forEach((reserva) => {
     if (reserva.estado === "reservada") {
       const fechaReserva = new Date(reserva.dia + "T" + reserva.hora);
-      // Agregar 2 horas a la hora de reserva para considerar la mesa libre
+      // Usar la duración específica de la reserva
       const fechaFinReserva = new Date(
-        fechaReserva.getTime() + 2 * 60 * 60 * 1000
+        fechaReserva.getTime() + (reserva.duracion || 2) * 60 * 60 * 1000
       );
 
-      // Si han pasado más de 2 horas desde la reserva, liberar la mesa
+      // Si ha pasado la duración de la reserva, liberar la mesa
       if (fechaFinReserva <= ahora) {
         reserva.estado = "completada";
         actualizarEstadoMesa(reserva.mesaId, "disponible");
