@@ -276,7 +276,24 @@ function agregarReserva(idMesa, nombre, dia, hora, lugar, ocasion = "Otro") {
     return false;
   }
 
+  // Verificar si ya existe una reserva activa para la misma mesa, día y hora
   const reservas = obtenerReservas();
+  const conflicto = reservas.find(
+    (reserva) =>
+      reserva.mesaId === idMesa &&
+      reserva.dia === dia &&
+      reserva.hora === hora &&
+      reserva.estado === "activa"
+  );
+
+  if (conflicto) {
+    mostrarAlerta(
+      "❌ Ya existe una reserva activa para esta mesa en la fecha y hora seleccionadas.",
+      "danger"
+    );
+    return false;
+  }
+
   const nuevaReserva = {
     id: `reserva${reservas.length + 1}`,
     mesaId: idMesa,
@@ -291,9 +308,6 @@ function agregarReserva(idMesa, nombre, dia, hora, lugar, ocasion = "Otro") {
 
   reservas.push(nuevaReserva);
   guardarReservas(reservas);
-
-  // Cambiar el estado de la mesa a reservada inmediatamente
-  actualizarEstadoMesa(idMesa, "reservada");
 
   // Actualizar el badge de reservas
   actualizarBadgeReservas();
