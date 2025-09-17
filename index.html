@@ -437,11 +437,6 @@
           return;
         }
 
-        if (mesa.estado !== "disponible") {
-          mostrarAlerta("La mesa no está disponible para reservar", "warning");
-          return;
-        }
-
         document.getElementById("reserve-modal").style.display = "block";
         document.getElementById("reserve-name").value = "";
         document.getElementById("reserve-day").value = "";
@@ -507,7 +502,7 @@
                   `👤 Cliente: ${nombre}\n` +
                   `📍 Ubicación: ${lugar}\n` +
                   `🎉 Ocasion: ${finalOcasion}\n\n` +
-                  `⚠️ La mesa se ha reservado inmediatamente y ya no está disponible para otras reservas.`,
+                  `⚠️ La mesa está reservada para la fecha y hora especificadas.`,
                 "success",
                 10000
               );
