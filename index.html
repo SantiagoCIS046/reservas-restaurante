@@ -125,11 +125,18 @@
           </div>
           <div class="form-group">
             <label for="reserve-location">Lugar:</label>
+            <select
+              id="reserve-location"
+              required
+              onchange="toggleOtherReserveLocationInput()"
+            >
+              <option value="">Seleccionar lugar...</option>
+            </select>
             <input
               type="text"
-              id="reserve-location"
-              placeholder="Ej: Interior, Terraza"
-              required
+              id="reserve-other-location"
+              placeholder="Especificar lugar personalizado"
+              class="reserve-other-location"
             />
           </div>
           <div class="form-group">
@@ -288,6 +295,39 @@
         select.appendChild(otroOption);
       }
 
+      // Función para poblar el select de ubicaciones en el formulario de reserva
+      function poblarSelectReserveLocations() {
+        const select = document.getElementById("reserve-location");
+        const custom = obtenerUbicacionesPersonalizadas();
+
+        // Limpiar opciones existentes excepto la primera
+        while (select.options.length > 1) {
+          select.remove(1);
+        }
+
+        // Agregar opciones predefinidas
+        ubicacionesPredefinidas.forEach((ubicacion) => {
+          const option = document.createElement("option");
+          option.value = ubicacion;
+          option.textContent = ubicacion;
+          select.appendChild(option);
+        });
+
+        // Agregar opciones personalizadas
+        custom.forEach((ubicacion) => {
+          const option = document.createElement("option");
+          option.value = ubicacion;
+          option.textContent = ubicacion;
+          select.appendChild(option);
+        });
+
+        // Agregar opción "Otro"
+        const otroOption = document.createElement("option");
+        otroOption.value = "Otro";
+        otroOption.textContent = "Otro";
+        select.appendChild(otroOption);
+      }
+
       // Función para mostrar alertas de Bootstrap
       function mostrarAlerta(mensaje, tipo = "success", duracion = 5000) {
         const alertContainer = document.getElementById("alert-container");
@@ -325,6 +365,7 @@
 
       document.addEventListener("DOMContentLoaded", function () {
         poblarSelectUbicaciones();
+        poblarSelectReserveLocations();
         renderizarMesas();
 
         // Verificar reservas cada 30 segundos para actualizar estados
@@ -420,6 +461,19 @@
       function toggleOtherLocationInput() {
         const select = document.getElementById("table-location");
         const input = document.getElementById("table-other-location");
+        if (select.value === "Otro") {
+          input.style.display = "block";
+          input.required = true;
+        } else {
+          input.style.display = "none";
+          input.required = false;
+          input.value = "";
+        }
+      }
+
+      function toggleOtherReserveLocationInput() {
+        const select = document.getElementById("reserve-location");
+        const input = document.getElementById("reserve-other-location");
         if (select.value === "Otro") {
           input.style.display = "block";
           input.required = true;
