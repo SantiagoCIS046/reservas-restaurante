@@ -430,12 +430,21 @@
         }
       }
 
+      // Function to set the minimum date to today for the reservation date input
+      function setMinDate() {
+        const today = new Date().toISOString().split("T")[0];
+        document.getElementById("reserve-day").setAttribute("min", today);
+      }
+
       function mostrarFormularioReserva(mesaId) {
         const mesa = window.sistemaMesas.buscarMesa(mesaId);
         if (!mesa) {
           mostrarAlerta("Mesa no encontrada", "danger");
           return;
         }
+
+        // Set the minimum date to today to prevent past reservations
+        setMinDate();
 
         document.getElementById("reserve-modal").style.display = "block";
         document.getElementById("reserve-name").value = "";
@@ -644,6 +653,9 @@
           mostrarAlerta("Mesa no encontrada", "danger");
           return;
         }
+
+        // Set the minimum date to today to prevent past reservations
+        setMinDate();
 
         // Cerrar el modal de selección
         cerrarSelectorMesas();
