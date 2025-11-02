@@ -14,5 +14,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "src/**/*.js": {
+      "runtime": "@vercel/node"
+    }
+  }
 }
