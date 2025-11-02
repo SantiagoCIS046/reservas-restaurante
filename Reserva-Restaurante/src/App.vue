@@ -1,9 +1,18 @@
-<script setup>
-import Restaurant from "./components/Restaurant.vue";
-</script>
-
 <template>
   <Restaurant />
 </template>
 
-<style scoped></style>
+<script>
+import Restaurant from "./components/Restaurant.vue";
+
+export default {
+  name: "App",
+  components: {
+    Restaurant,
+  },
+};
+</script>
+
+<style>
+/* Estilos globales si es necesario */
+</style>

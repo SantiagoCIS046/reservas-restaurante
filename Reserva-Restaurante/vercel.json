@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npx vite build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
@@ -14,10 +14,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "src/**/*.js": {
-      "runtime": "@vercel/node"
-    }
-  }
+  ]
 }
